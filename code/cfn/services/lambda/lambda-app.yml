@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Lambda function
+Parameters:
+  project:
+    Type: String
+    Description:  Project Name
+  app:
+    Type: String
+    Description:  Application Name   
+  env:
+    Type: String
+    Default: dev
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  privateSubnet01:
+    Type: String
+    Description: The subnet Id for the DB cluster
+  privateSubnet02:
+    Type: String
+    Description: The subnet Id for the DB cluster
+  securityGroup:
+    Type: String
+    Description: The ID of the security group
+  dbHostPoint:
+    Type: String
+    Description: Endpoint of database
+Resources:
+  lambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${project}-${env}-${app}-lambdaExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+        Policies:
+          - PolicyName: LambdaRDSAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - rds:DescribeDBInstances
+                    - ec2:DescribeSecurityGroups
+                    - ec2:DescribeSubnets
+                    - ec2:DescribeVpcs
+                    - logs:*
+                    - cloudwatch:GenerateQuery
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - ec2:CreateNetworkInterface
+                    - ec2:DescribeNetworkInterfaces
+                    - ec2:DescribeSubnets
+                    - ec2:DeleteNetworkInterface
+                    - ec2:AssignPrivateIpAddresses
+                    - ec2:UnassignPrivateIpAddresses
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource:
+                    - "*"
+                    - "arn:aws:logs:us-east-1:122253718099:*"
+                    - "arn:aws:logs:us-east-1:122253718099:log-group:/aws/*:*"
+  lambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      Role: !GetAtt lambdaExecutionRole.Arn
+      Code:
+        ImageUri: 122253718099.dkr.ecr.us-west-1.amazonaws.com/botest-dev-repository:latest
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref securityGroup
+        SubnetIds:
+          - !Ref privateSubnet01
+          - !Ref privateSubnet02
+      Description: Invoke a function from ECR image
+      Environment:
+        Variables:
+          RDS_HOST: !Ref dbHostPoint

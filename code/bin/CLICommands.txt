@@ -1,0 +1,6 @@
+aws s3 sync . s3://bottest-ai-app-prod-us-east-1-122253718099/ --exclude ".git/*" --exclude "LICENSE" --exclude "README.md"
+
+aws cloudformation create-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/services/apiGateway/apiGateway-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod --capabilities CAPABILITY_NAMED_IAM
+
+aws cloudformation update-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/services/apiGateway/apiGateway-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod --capabilities CAPABILITY_NAMED_IAM
+

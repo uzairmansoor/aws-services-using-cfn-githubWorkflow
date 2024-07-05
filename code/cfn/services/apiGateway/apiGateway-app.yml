@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloudformation template to deploy API Gateway
+Parameters:
+  project:
+    Type: String
+    Description:  Project Name
+  app:
+    Type: String
+    Description:  Application Name   
+  env:
+    Type: String
+    Default: dev
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  apiProtocolType:
+    Type: String
+    Default: HTTP
+    AllowedValues: [HTTP, WEBSOCKET]
+    Description:  API Gateway protocol type
+  apiIntegrationType:
+    Type: String
+    Default: AWS_PROXY
+    AllowedValues: [AWS, AWS_PROXY, HTTP, HTTP_PROXY, MOCK]
+    Description:  API Gateway integration type
+  lambdaFunctionArn:
+    Type: String
+    Description:  ARN of the Lambda function to integrate with API Gateway
+Resources:
+  apiGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${project}-${env}-${app}-apiGateway"
+      Description: Api Gateway
+      ProtocolType: !Ref apiProtocolType
+      Tags:
+        name: !Sub "${project}-${env}-${app}-apiGateway"
+        project: !Ref project
+        app: !Ref app
+        env: !Ref env
+  lambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      Description: HTTP API gateway proxy integration
+      ApiId: !Ref apiGateway
+      IntegrationType: !Ref apiIntegrationType
+      IntegrationMethod: POST
+      PayloadFormatVersion: "2.0"
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaFunctionArn}/invocations
+        # Fn::Sub: 
+        #   - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+        #   - LambdaArn: !Ref lambdaFunctionArn
+  defaultApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: $default
+  proxyApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref apiGateway
+      RouteKey: ANY /{proxy+}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref lambdaIntegration
+  defaultApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      Description: Default Api Gateway stage
+      ApiId: !Ref apiGateway
+      StageName: $default
+      AutoDeploy: true
+  apiDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - defaultApiRoute
+      - proxyApiRoute
+      - defaultApiStage
+    Properties:
+      Description: Api Gateway deployment
+      ApiId: !Ref apiGateway
+      StageName: !Ref defaultApiStage
+Outputs:
+  apiGatewayEndpoint:
+    Value: !Ref apiGateway
+    Export:
+      Name: !Sub "${project}-${env}-${app}-apiGatewayEndpoint-${AWS::Region}"
+  apiGatewayApiId:
+    Value: !Ref apiGateway
+    Export:
+      Name: !Sub "${project}-${env}-${app}-apiGatewayApiId-${AWS::Region}"
+  apiGatewayDeploymentId:
+    Value: !Ref apiDeployment
+    Export:
+      Name: !Sub "${project}-${env}-${app}-apiGatewayDeploymentId-${AWS::Region}"
