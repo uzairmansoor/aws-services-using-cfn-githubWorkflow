@@ -78,24 +78,18 @@ aws cloudformation delete-stack --stack-name bottest-api-dev-app-us-east-1
 
 **Sync Files:** Use the S3 sync command under the "Production" section.
 
-## Create/Update/Delete Stack: 
-
-Use the appropriate CloudFormation command under the "Production" section.
+**Create/Update/Delete Stack:** Use the appropriate CloudFormation command under the "Production" section.
 
 ### Development (DEV)
 
-## Sync Files: 
+**Sync Files:** Use the S3 sync command under the "Development" section.
 
-Use the S3 sync command under the "Development" section.
-
-## Create/Update/Delete Stack:
-
-Use the appropriate CloudFormation command under the "Development" section.
+**Create/Update/Delete Stack:** Use the appropriate CloudFormation command under the "Development" section.
 
 ### Notes
 
-Ensure all sensitive parameters (e.g., passwords, API keys) are securely managed and not hard-coded in your 
+- Ensure all sensitive parameters (e.g., passwords, API keys) are securely managed and not hard-coded in your 
 scripts or templates.
 
-Adjust the paths and parameters in the commands as needed to fit your specific project structure and requirements.
+- Adjust the paths and parameters in the commands as needed to fit your specific project structure and requirements.
 
