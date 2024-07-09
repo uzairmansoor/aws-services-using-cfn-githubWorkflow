@@ -19,3 +19,9 @@ Before deploying the CloudFormation stack, ensure the necessary files are synced
 ### Production
 ```sh
 aws s3 sync . s3://bottest-ai-app-prod-us-east-1-122253718099/ --exclude ".git/*" --exclude "LICENSE" --exclude "README.md"
+
+### Development
+```sh
+aws s3 sync . s3://bottest-ai-app-dev-us-east-1-533267082328/ --exclude ".git/*" --exclude "LICENSE" --exclude "README.md"
+
+## CloudFormation Stack Operations
