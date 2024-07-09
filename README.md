@@ -86,7 +86,7 @@ aws cloudformation delete-stack --stack-name bottest-api-dev-app-us-east-1
 
 **Create/Update/Delete Stack:** Use the appropriate CloudFormation command under the "Development" section.
 
-### Notes
+## Notes
 
 - Ensure all sensitive parameters (e.g., passwords, API keys) are securely managed and not hard-coded in your 
 scripts or templates.
