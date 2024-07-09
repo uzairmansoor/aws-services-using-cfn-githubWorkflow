@@ -1,0 +1,160 @@
+Description: Driver template to deploy services for bottest ai
+Parameters:
+  project:
+    Type: String
+    Default: bottest-ai
+    Description:  Project Name
+  env:
+    Type: String
+    Default: dev
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  app:
+    Type: String
+    Default: app
+    Description:  Application Name
+  dBUsername:
+    Type: String
+    NoEcho: true
+    Description: The Username for database access
+  dBPassword:
+    Type: String
+    NoEcho: true
+    Description: The Password for database access
+  slackToken:
+    Type: String
+    Description: Value of slack token
+  openaiApiKey:
+    Type: String
+    Description: value of open api key
+  jwksUrl:
+    Type: String
+    Description: value of jwks url
+  environment:
+    Type: String
+    Description: value of environment
+  clerkApiKey:
+    Type: String
+    Description: value of clerk api key
+  s3ArtifactPath:
+    Type: String
+    Default: "https://bottest-ai-app-dev-us-east-1-533267082328.s3.amazonaws.com/code/cfn/services"
+    Description: Artifact Bucket Path
+Resources:
+  vpc:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/vpc/vpc-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        app: !Ref app
+        vpcCidr: 10.0.0.0/16
+        publicSubnet1Cidr: 10.0.1.0/24
+        publicSubnet2Cidr: 10.0.2.0/24
+        privateSubnet1Cidr: 10.0.3.0/24
+        privateSubnet2Cidr: 10.0.4.0/24
+        publicSubnet3Cidr: 10.0.36.0/24
+        publicSubnet4Cidr: 10.0.37.0/24
+        publicIPActive: True
+        vpcDnsEnabled: True
+        vpcDnsSupport: True
+  securityGroup:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/securityGroup/securityGroup-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        app: !Ref app
+        vpcId: !GetAtt vpc.Outputs.vpcId
+        cidrIp: 14.1.106.50/32
+  ecrRepository:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/ecr/ecr-app.yml"
+      Parameters:
+        project: !Ref project
+        app: !Ref app
+        env: !Ref env
+  rdsInstance:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/rds/rds-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        app: !Ref app
+        dBInstanceIdentifier: db
+        dbName: mydb
+        dBInstanceClass: db.t3.micro
+        dbSubnets: !GetAtt vpc.Outputs.SubnetIds
+        dbSecurityGroup: !GetAtt securityGroup.Outputs.sgPostgresId
+        dbEncryptionStatus: true
+        dbPubliclyAccessible: false
+        dbStorageType: gp3
+        dbDeletionProtection: false
+        dBAllocatedStorage: 20
+        dBEngine: "postgres"
+        dBUsername: !Ref dBUsername
+        dBPassword: !Ref dBPassword
+  lambdaFunction:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/lambda/lambda-app.yml"
+      Parameters:
+        project: !Ref project
+        app: !Ref app
+        env: !Ref env
+        privateSubnet01: !Select [4, !Split [",", !GetAtt vpc.Outputs.SubnetIds]]
+        privateSubnet02: !Select [5, !Split [",", !GetAtt vpc.Outputs.SubnetIds]]
+        lambdaSecurityGroup: !GetAtt securityGroup.Outputs.sgLambdaId
+        dbHostEndPoint: !GetAtt rdsInstance.Outputs.dBEndpoint
+        ecrRepositoryUri: !GetAtt ecrRepository.Outputs.ecrRepositoryUri
+        slackToken: !Ref slackToken
+        openaiApiKey: !Ref openaiApiKey
+        jwksUrl: !Ref jwksUrl
+        environment: !Ref environment
+        clerkApiKey: !Ref clerkApiKey
+        dBUsername: !Ref dBUsername
+        dBPassword: !Ref dBPassword
+        dbName: mydb
+  httpApiGateway:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/apiGateway/apiGateway-app.yml"
+      Parameters:
+        project: !Ref project
+        app: !Ref app
+        env: !Ref env
+        apiProtocolType: HTTP
+        apiIntegrationType: AWS_PROXY
+        lambdaFunctionArn: !GetAtt lambdaFunction.Outputs.lambdaFunctionArn
+Outputs:
+  vpc:
+    Description: VPC instance Stack
+    Value: !Ref vpc
+    Export:
+      Name: !Sub "${project}-${env}-${app}-vpc-${AWS::Region}"
+  securityGroup:
+    Description: Security group instance Stack
+    Value: !Ref securityGroup
+    Export:
+      Name: !Sub "${project}-${env}-${app}-securitygroup-${AWS::Region}"
+  ecrRepository:
+    Value: !Ref ecrRepository
+    Export:
+        Name: !Sub "${project}-${env}-${app}-ecrRepository-${AWS::Region}"
+  rdsInstance:
+    Description: Rds instance Stack
+    Value: !Ref rdsInstance
+    Export:
+      Name: !Sub "${project}-${env}-${app}-rdsInstance-${AWS::Region}"
+  lambdaFunction:
+    Value: !Ref lambdaFunction
+    Export:
+      Name: !Sub "${project}-${env}-${app}-lambdaFunction-${AWS::Region}"
+  httpApiGateway:
+    Value: !Ref httpApiGateway
+    Export:
+      Name: !Sub "${project}-${env}-${app}-httpApiGateway-${AWS::Region}"

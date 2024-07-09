@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Cloudformation Template to deploy ECR
+Description: Cloudformation template to deploy ECR
 Parameters:
   project:
     Type: String
@@ -16,7 +16,7 @@ Resources:
   ecrRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub "${project}-${env}-${app}-repository"
+      RepositoryName: !Sub "${project}-${env}-${app}-ecr-repository"
       RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
@@ -39,7 +39,11 @@ Resources:
         - Key: environment
           Value: !Ref env
 Outputs:
-  ecrRepository:
+  ecrRepositoryName:
     Value: !Ref ecrRepository
     Export:
-        Name: !Sub "${project}-${env}-${app}-ecrRepository-${AWS::Region}"
+        Name: !Sub "${project}-${env}-${app}-ecrRepositoryName-${AWS::Region}"
+  ecrRepositoryUri:
+    Value: !GetAtt ecrRepository.RepositoryUri
+    Export:
+        Name: !Sub "${project}-${env}-${app}-ecrRepositoryUri-${AWS::Region}"

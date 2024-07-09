@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation template for Lambda function
+Description: CloudFormation template to deploy Lambda function
 Parameters:
   project:
     Type: String
@@ -18,12 +18,49 @@ Parameters:
   privateSubnet02:
     Type: String
     Description: The subnet Id for the DB cluster
-  securityGroup:
+  lambdaSecurityGroup:
     Type: String
     Description: The ID of the security group
-  dbHostPoint:
+  dbHostEndPoint:
     Type: String
     Description: Endpoint of database
+  ecrRepositoryUri:
+    Type: String
+    Description: URI of ECR repository
+  slackToken:
+    Type: String
+    Description: Value of slack token
+  openaiApiKey:
+    Type: String
+    Description: value of open api key
+  jwksUrl:
+    Type: String
+    Description: value of jwks url
+  environment:
+    Type: String
+    Description: value of environment
+  clerkApiKey:
+    Type: String
+    Description: value of clerk api key
+  dBUsername:
+    Type: String
+    NoEcho: true
+    Description: The Username for database access
+  dBPassword:
+    Type: String
+    NoEcho: true
+    Description: The Password for database access
+  dbPort:
+    Type: String
+    Default: 5432
+    Description: The port number on which the database accepts connections
+  dbName:
+    Default: mydb
+    Description: "The database name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
 Resources:
   lambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -36,48 +73,73 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-        Policies:
-          - PolicyName: LambdaRDSAccess
-            PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - rds:DescribeDBInstances
-                    - ec2:DescribeSecurityGroups
-                    - ec2:DescribeSubnets
-                    - ec2:DescribeVpcs
-                    - logs:*
-                    - cloudwatch:GenerateQuery
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                    - ec2:CreateNetworkInterface
-                    - ec2:DescribeNetworkInterfaces
-                    - ec2:DescribeSubnets
-                    - ec2:DeleteNetworkInterface
-                    - ec2:AssignPrivateIpAddresses
-                    - ec2:UnassignPrivateIpAddresses
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                  Resource:
-                    - "*"
-                    - "arn:aws:logs:us-east-1:122253718099:*"
-                    - "arn:aws:logs:us-east-1:122253718099:log-group:/aws/*:*"
+      Policies:
+        - PolicyName: !Sub "${project}-${env}-${app}-lambdaExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeVpcs
+                  - logs:*
+                  - cloudwatch:GenerateQuery
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DescribeSubnets
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/*:*"
   lambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
+      Description: Invoke a function from ECR image
+      FunctionName: !Sub "${project}-${env}-${app}-lambdaFunction"
       PackageType: Image
       Role: !GetAtt lambdaExecutionRole.Arn
       Code:
-        ImageUri: 122253718099.dkr.ecr.us-west-1.amazonaws.com/botest-dev-repository:latest
+        ImageUri: !Sub ${ecrRepositoryUri}:latest
       VpcConfig:
         SecurityGroupIds:
-          - !Ref securityGroup
+          - !Ref lambdaSecurityGroup
         SubnetIds:
           - !Ref privateSubnet01
           - !Ref privateSubnet02
-      Description: Invoke a function from ECR image
       Environment:
         Variables:
-          RDS_HOST: !Ref dbHostPoint
+          DATABASE_URI: !Sub postgresql://${dBUsername}:${dBPassword}@${dbHostEndPoint}:${dbPort}/${dbName}
+          CLERK_API_KEY: !Ref clerkApiKey
+          ENVIRONMENT: !Ref environment
+          JWKS_URL: !Ref jwksUrl
+          OPENAI_API_KEY: !Ref openaiApiKey
+          SLACK_TOKEN: !Ref slackToken
+  lambdaFunctionPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref lambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:gs0x85jew2/*/*/{proxy+}
+Outputs:
+  lambdaFunctionId:
+    Description: Id of lambda function
+    Value: !Ref lambdaFunction
+    Export:
+      Name: !Sub "${project}-${env}-${app}-lambdaFunctionId-${AWS::Region}"
+  lambdaFunctionArn:
+      Description: Arn of lambda function
+      Value: !GetAtt lambdaFunction.Arn
+      Export:
+        Name: !Sub "${project}-${env}-${app}-lambdaFunctionArn-${AWS::Region}"

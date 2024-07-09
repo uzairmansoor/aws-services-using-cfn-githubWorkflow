@@ -27,7 +27,21 @@ Resources:
         project: !Ref project
         app: !Ref app
         env: !Ref env
-        privateSubnet01: !GetAtt vpc.Outputs.privateSubnetA
-        privateSubnet02: !GetAtt vpc.Outputs.privateSubnetB
-        securityGroup: !GetAtt securityGroup.Outputs.webSecurityGroup
-        dbHostPoint: !GetAtt rds.Outputs.dBEndpoint
+        privateSubnet01: !Select [4, !Split [",", !GetAtt vpc.Outputs.SubnetIds]]
+        privateSubnet02: !Select [5, !Split [",", !GetAtt vpc.Outputs.SubnetIds]]
+        lambdaSecurityGroup: !GetAtt securityGroup.Outputs.sgLambdaId
+        ecrRepositoryUri: !GetAtt ecrRepository.Outputs.ecrRepositoryUri
+        dbHostPoint: !GetAtt rdsInstance.Outputs.dBEndpoint
+        slackToken: !Ref slackToken
+        openaiApiKey: !Ref openaiApiKey
+        jwksUrl: !Ref jwksUrl
+        environment: !Ref environment
+        clerkApiKey: !Ref clerkApiKey
+        dBUsername: !Ref dBUsername
+        dBPassword: !Ref dBPassword
+        dbName: mydb
+Outputs:
+  lambdaFunction:
+    Value: !Ref lambdaFunction
+    Export:
+      Name: !Sub "${project}-${env}-${app}-lambdaFunction-${AWS::Region}"

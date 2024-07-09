@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Driver template to create IAM roles
+Parameters:
+  project:
+    Type: String
+    Default: bottest-ai
+    Description:  Project Name
+  env:
+    Type: String
+    Default: prod
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  app:
+    Type: String
+    Default: app
+    Description:  Application Name
+  dBUsername:
+    Type: String
+    NoEcho: true
+    Description: The Username for database access
+  dBPassword:
+    Type: String
+    Default: admin123
+    NoEcho: true
+    Description: The Password for database access
+  s3ArtifactPath:
+    Type: String
+    Default: "https://bottest-ai-app-prod-us-east-1-122253718099.s3.amazonaws.com/code/cfn/services"
+    Description: Artifact Bucket Path
+Resources:
+  rdsInstance:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/rds/rds-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        dBInstanceIdentifier: db
+        dbName: mydb
+        dBInstanceClass: db.t3.micro
+        dbSubnets: !GetAtt vpc.Outputs.SubnetIds
+        dbSecurityGroup: !GetAtt securityGroup.Outputs.sgRds
+        dbEncryptionStatus: true
+        dbPubliclyAccessible: false
+        dbStorageType: gp3
+        dbDeletionProtection: false
+        dBAllocatedStorage: 20
+        dBEngine: "postgres"
+        dBUsername: !Ref dBUsername
+        dBPassword: !Ref dBPassword
+Outputs:
+  rdsInstance:
+    Description: Rds instance Stack
+    Value: !Ref rdsInstance
+    Export:
+      Name: !Sub "${project}-${env}-rdsInstance-${AWS::Region}"

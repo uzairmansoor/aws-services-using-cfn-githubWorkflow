@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Driver template to deploy VPC
+Parameters:
+  project:
+    Type: String
+    Default: bottest-ai
+    Description:  Project Name
+  env:
+    Type: String
+    Default: prod
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  app:
+    Type: String
+    Default: app
+    Description:  Application Name
+  s3ArtifactPath:
+    Type: String
+    Default: "https://bottest-ai-app-prod-us-east-1-122253718099.s3.amazonaws.com/code/cfn/services"
+    Description: Artifact Bucket Path
+Resources:
+  vpc:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}/vpc/vpc-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        app: !Ref app
+        vpcCidr: 10.0.0.0/16
+        publicSubnet1Cidr: 10.0.1.0/24
+        publicSubnet2Cidr: 10.0.2.0/24
+        privateSubnet1Cidr: 10.0.3.0/24
+        privateSubnet2Cidr: 10.0.4.0/24
+        publicSubnet3Cidr: 10.0.36.0/24
+        publicSubnet4Cidr: 10.0.37.0/24
+        publicIPActive: True
+        vpcDnsEnabled: True
+        vpcDnsSupport: True
+Outputs:
+  vpcId:
+    Value: !Ref vpc
+    Export:
+      Name: !Sub "${project}-${env}-vpc-${AWS::Region}"

@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Driver template to deploy the VPC security groups
+Parameters:
+  project:
+    Type: String
+    Default: bottest-ai
+    Description:  Project Name
+  env:
+    Type: String
+    Default: dev
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  app:
+    Type: String
+    Default: app
+    Description:  Application Name
+  s3ArtifactPath:
+    Type: String
+    Default: "https://bottest-ai-app-prod-us-east-1-122253718099.s3.amazonaws.com/code/cfn/services"
+    Description: Artifact Bucket Path
+Resources:
+  securityGroup:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${s3ArtifactPath}//securityGroup/securityGroup-app.yml"
+      Parameters:
+        project: !Ref project
+        env: !Ref env
+        vpcId: !GetAtt vpc.Outputs.vpcId
+        cidrIp: 14.1.106.50/32
+Outputs:
+  securityGroup:
+    Value: !Ref securityGroup
+    Export:
+      Name: !Sub "${project}-${env}-securitygroup-${AWS::Region}"

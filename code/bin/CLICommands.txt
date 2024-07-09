@@ -1,6 +1,29 @@
+###########################
+        Sync - PROD
+###########################
+
 aws s3 sync . s3://bottest-ai-app-prod-us-east-1-122253718099/ --exclude ".git/*" --exclude "LICENSE" --exclude "README.md"
 
-aws cloudformation create-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/services/apiGateway/apiGateway-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod --capabilities CAPABILITY_NAMED_IAM
+###########################
+        PROD
+###########################
+aws cloudformation create-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/stacks/prod/prod-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod ParameterKey=dBUsername,ParameterValue=postgres ParameterKey=dBPassword,ParameterValue=postgres123 ParameterKey=slackToken,ParameterValue=xyz-123 ParameterKey=openaiApiKey,ParameterValue=xyz-123 ParameterKey=jwksUrl,ParameterValue=xyz-123 ParameterKey=environment,ParameterValue=xyz-123 ParameterKey=clerkApiKey,ParameterValue=xyz-123 --capabilities CAPABILITY_NAMED_IAM
 
-aws cloudformation update-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/services/apiGateway/apiGateway-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation update-stack --stack-name bottest-api-prod-app-us-east-1 --template-body file://code/cfn/stacks/prod/prod-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=prod ParameterKey=dBUsername,ParameterValue=postgres ParameterKey=dBPassword,ParameterValue=postgres123 ParameterKey=slackToken,ParameterValue=xyz-123 ParameterKey=openaiApiKey,ParameterValue=xyz-123 ParameterKey=jwksUrl,ParameterValue=xyz-123 ParameterKey=environment,ParameterValue=xyz-123 ParameterKey=clerkApiKey,ParameterValue=xyz-123 --capabilities CAPABILITY_NAMED_IAM
 
+aws cloudformation delete-stack --stack-name bottest-api-prod-app-us-east-1
+
+###########################
+        Sync - DEV
+###########################
+
+aws s3 sync . s3://bottest-ai-app-dev-us-east-1-533267082328/ --exclude ".git/*" --exclude "LICENSE" --exclude "README.md"
+
+###########################
+        DEV
+###########################
+aws cloudformation create-stack --stack-name bottest-api-dev-app-us-east-1 --template-body file://code/cfn/stacks/dev/dev-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=dev ParameterKey=dBUsername,ParameterValue=postgres ParameterKey=dBPassword,ParameterValue=postgres123 ParameterKey=slackToken,ParameterValue=xyz-123 ParameterKey=openaiApiKey,ParameterValue=xyz-123 ParameterKey=jwksUrl,ParameterValue=xyz-123 ParameterKey=environment,ParameterValue=xyz-123 ParameterKey=clerkApiKey,ParameterValue=xyz-123 --capabilities CAPABILITY_NAMED_IAM
+
+aws cloudformation update-stack --stack-name bottest-api-dev-app-us-east-1 --template-body file://code/cfn/stacks/dev/dev-main.yml --parameters ParameterKey=project,ParameterValue=bottest-ai ParameterKey=env,ParameterValue=dev ParameterKey=dBUsername,ParameterValue=postgres ParameterKey=dBPassword,ParameterValue=postgres123 ParameterKey=slackToken,ParameterValue=xyz-123 ParameterKey=openaiApiKey,ParameterValue=xyz-123 ParameterKey=jwksUrl,ParameterValue=xyz-123 ParameterKey=environment,ParameterValue=xyz-123 ParameterKey=clerkApiKey,ParameterValue=xyz-123 --capabilities CAPABILITY_NAMED_IAM
+
+aws cloudformation delete-stack --stack-name bottest-api-dev-app-us-east-1

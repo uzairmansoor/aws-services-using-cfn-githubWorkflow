@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template to create the Security Groups
+Parameters:
+  project:
+    Type: String
+    Description:  Project Name
+  app:
+    Type: String
+    Description:  Application Name   
+  env:
+    Type: String
+    Default: dev
+    AllowedValues: [prod, dev, qa, stag]
+    Description:  Environment Name
+  vpcId:
+    Type: String
+    Description: ID of the VPC for the security group
+  cidrIp:
+    Type: String
+    Description: CIDR IP of domain
+Resources:
+  sgLambda:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpcId
+      GroupDescription: Security group to allow traffic on lambda function from rds
+      Tags:
+        - Key: Name
+          Value: !Sub "${project}-${env}-sgLambda-${AWS::Region}"
+        - Key: project
+          Value: !Ref project
+        - Key: environment
+          Value: !Ref env
+  sgLambdaHttpsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref sgLambda
+      Description: Allow https traffic
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+  sgLambdaHttpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref sgLambda
+      Description: Allow http traffic
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+  sgLambdaEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref sgLambda
+      Description: Allow traffic
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+  sgLambdaPostgres:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpcId
+      GroupDescription: Security group to allow traffic on lambda function from rds
+      Tags:
+        - Key: Name
+          Value: !Sub "${project}-${env}-sgLambdaPostgres-${AWS::Region}"
+        - Key: project
+          Value: !Ref project
+        - Key: environment
+          Value: !Ref env
+  sgLambdaPostgresEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref sgLambdaPostgres
+      Description: Allow traffic
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      CidrIp: 0.0.0.0/0
+  sgPostgresLambda:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow traffic on database
+      VpcId: !Ref vpcId
+      Tags:
+        - Key: Name
+          Value: !Sub "${project}-${env}-sgPostgresLambda-${AWS::Region}"
+        - Key: project
+          Value: !Ref project
+        - Key: environment
+          Value: !Ref env
+  sgPostgresLambdaIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref sgPostgresLambda
+      Description: Allow traffic on db
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref sgLambdaPostgres
+  sgDbEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref sgPostgresLambda
+      Description: Allow traffic on db
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      CidrIp: 0.0.0.0/0
+  sgPostgres:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpcId
+      GroupDescription: Security group to allow traffic
+      Tags:
+        - Key: Name
+          Value: !Sub "${project}-${env}-sgPostgres-${AWS::Region}"
+        - Key: project
+          Value: !Ref project
+        - Key: environment
+          Value: !Ref env
+  sgPostgresIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref sgPostgres
+      Description: Allow traffic
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref sgPostgresLambda
+  sgPostgresIpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref sgPostgres
+      Description: Allow ip traffic
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      CidrIp: !Ref cidrIp
+  sgPostgresEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref sgPostgres
+      Description: Allow all traffic
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+Outputs:
+  sgLambdaId:
+    Description: Lambda Security Group ID
+    Value: !Ref sgLambda
+    Export:
+      Name: !Sub "${project}-${env}-${app}-sgLambdaId"
+  sgPostgresLambdaId:
+    Description: Postgres RDS Lambda Security Group ID
+    Value: !Ref sgPostgresLambda
+    Export:
+      Name: !Sub "${project}-${env}-${app}-sgPostgresLambdaId"
+  sgPostgresId:
+    Description: Postgres RDS Security Group ID
+    Value: !Ref sgPostgres
+    Export:
+      Name: !Sub "${project}-${env}-${app}-sgPostgresId"
